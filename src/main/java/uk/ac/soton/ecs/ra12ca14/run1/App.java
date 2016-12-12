@@ -3,6 +3,8 @@ package uk.ac.soton.ecs.ra12ca14.run1;
 import org.apache.commons.vfs2.*;
 import org.apache.log4j.*;
 import org.openimaj.data.dataset.*;
+import org.openimaj.experiment.dataset.split.*;
+import org.openimaj.experiment.evaluation.classification.*;
 import org.openimaj.feature.*;
 import org.openimaj.image.*;
 import org.openimaj.ml.annotation.*;
@@ -25,6 +27,8 @@ public class App {
             Logger.getLogger(App.class).error("Could not read the dataset " + e);
         }
 
+        training.remove("training");
+
 
         VFSListDataset<FImage> testing = null;
         try {
@@ -37,18 +41,26 @@ public class App {
         KNNAnnotator<FImage, String, FloatFV> annotator = KNNAnnotator.create(new OurExtractor(16),
                 FloatFVComparison.EUCLIDEAN);
 
-        annotator.train(training);
 
-        for(String ann: annotator.getAnnotations()){
-            System.out.println(ann);
-        }
+        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(training, 50, 0, 50);
 
-        System.out.println("-------------------------");
+        GroupedDataset<String, ListDataset<FImage>, FImage> trainingSplit = splitter.getTrainingDataset();
+        GroupedDataset<String, ListDataset<FImage>, FImage> testingSplit = splitter.getTestDataset();
+
+        annotator.trainMultiClass(trainingSplit);
+
         int i = 0;
-        for(FImage f: testing){
-            for(ScoredAnnotation<String> obj: annotator.annotate(f)){
-                System.out.println("image " + i + " " +obj.annotation);
+        for(FImage image: testingSplit) {
+            if (i > 30) {
+                break;
             }
+            FImage newImage = null;
+            if (image.getHeight() > image.getWidth()) {
+                newImage = image.extractCenter(image.getWidth(), image.getWidth()).normalise();
+            } else if (image.getWidth() > image.getHeight()) {
+                newImage = image.extractCenter(image.getHeight(), image.getHeight()).normalise();
+            }
+            DisplayUtilities.display(newImage);
             i++;
         }
     }

@@ -15,25 +15,32 @@ public class OurExtractor implements FeatureExtractor<FloatFV, FImage> {
         resize = new ResizeProcessor(size, size);
     }
 
-
     public FloatFV extractFeature(FImage image) {
         FImage newImage = null;
         if (image.getWidth() != image.getHeight()) {
 
             if (image.getHeight() > image.getWidth()) {
-                int newy = (image.getHeight() - image.getWidth()) / 2;
-                newImage = image.extractROI(0, newy, image.getWidth(), image.getWidth());
+                newImage = image.extractCenter(image.getWidth(), image.getWidth()).normalise();
                 resize.processImage(newImage);
             } else if (image.getWidth() > image.getHeight()) {
-                int newx = (image.getWidth() - image.getHeight()) / 2;
-                newImage = image.extractROI(newx, 0, image.getHeight(), image.getHeight());
+                newImage = image.extractCenter(image.getHeight(), image.getHeight()).normalise();
                 resize.processImage(newImage);
             }
         } else {
-            newImage = image;
+            newImage = image.normalise();
             resize.processImage(image);
-
         }
-        return new FloatFV(newImage.getFloatPixelVector());
+
+        float tot = 0;
+        int pixelTot = 0;
+        for(int i = 0; i < newImage.getWidth(); i++){
+            for(int j = 0; j < newImage.getHeight(); j++){
+                tot += newImage.pixels[j][i];
+                pixelTot++;
+            }
+        }
+
+        return new FloatFV(newImage.subtractInplace(tot/pixelTot)
+                                   .getFloatPixelVector());
     }
 }
