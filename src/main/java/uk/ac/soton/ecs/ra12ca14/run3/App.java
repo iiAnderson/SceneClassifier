@@ -53,9 +53,9 @@ public class App {
             Logger.getLogger(App.class).error("Could not read the dataset " + e);
         }
 
-        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(training, 50, 0, 50);
+        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(training, 100, 0, 0);
 
-        caching(training, testing);
+        caching(splitter.getTrainingDataset(), testing);
     }
 
     public static HardAssigner<byte[], float[], IntFloatPair> trainQuantiser(
@@ -114,12 +114,18 @@ public class App {
         ann.train(data);
         System.out.println("Finished Training");
 
-        ClassificationEvaluator<CMResult<String>, String, FImage> eval =
-                new ClassificationEvaluator<>(
-                        ann, testing, new CMAnalyser<FImage, String>(CMAnalyser.Strategy.SINGLE));
-        System.out.println("Built Evaluator");
-        Map<FImage, ClassificationResult<String>> guesses = eval.evaluate();
-        CMResult<String> result = eval.analyse(guesses);
-        System.out.println(result);
+        for(int i = 0; i < testing.size(); i ++){
+            FImage img = testing.get(i);
+
+            ClassificationResult<String> res = ann.classify(img);
+
+            String app = "";
+            for(String s: res.getPredictedClasses())
+                app += s;
+
+            System.out.println("Image " + i + " predicted as: " + app);
+
+        }
+
     }
 }
