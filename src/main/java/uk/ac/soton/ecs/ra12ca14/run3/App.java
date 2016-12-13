@@ -12,6 +12,7 @@ import org.openimaj.feature.local.data.*;
 import org.openimaj.feature.local.list.*;
 import org.openimaj.image.*;
 import org.openimaj.image.feature.dense.gradient.dsift.*;
+import org.openimaj.ml.annotation.Annotator;
 import org.openimaj.ml.annotation.bayes.NaiveBayesAnnotator;
 import org.openimaj.ml.clustering.*;
 import org.openimaj.ml.clustering.assignment.*;
@@ -43,9 +44,9 @@ public class App {
         }
 
         GroupedRandomSplitter<String, FImage> splitter =
-                new GroupedRandomSplitter<>(training, 80, 10, 10);
+                new GroupedRandomSplitter<>(training, 40, 40, 20);
 
-        performTask(splitter.getTrainingDataset(), testing);
+        performTask(splitter.getTrainingDataset(), testing, splitter.getValidationDataset());
     }
 
     public static HardAssigner<byte[], float[], IntFloatPair> trainWithKMeans(
@@ -75,7 +76,7 @@ public class App {
     }
 
     private static void performTask(GroupedDataset<String, ListDataset<FImage>, FImage> train,
-                                VFSListDataset<FImage> testing){
+                                VFSListDataset<FImage> testing, GroupedDataset<String, ListDataset<FImage>, FImage> val){
 
         PyramidDenseSIFT<FImage> sift = new PyramidDenseSIFT<FImage>(
                 new DenseSIFT(5, 7), 6f, 7);
@@ -96,37 +97,61 @@ public class App {
 
         System.out.println("Finished Training");
 
-        File output = new File("run3.txt");
-        try {
-            if(!output.exists())
-                output.createNewFile();
-        }catch (Exception e){}
+        validateVerifier(annot, val);
 
-        FileWriter fileWriter = null;
-        try {
-            fileWriter = new FileWriter(output);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
+//        File output = new File("run3.txt");
+//        try {
+//            if(!output.exists())
+//                output.createNewFile();
+//        }catch (Exception e){}
+//
+//        FileWriter fileWriter = null;
+//        try {
+//            fileWriter = new FileWriter(output);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            return;
+//        }
+//        PrintWriter printer = new PrintWriter(fileWriter);
+//
+//        for(int i = 0; i < testing.size(); i ++){
+//            FileObject img = testing.getFileObject(i);
+//
+//            //Classifies the Image and returns a result
+//            ClassificationResult<String> res = annot.classify(testing.get(i));
+//
+//            String app = "";
+//            for(String s: res.getPredictedClasses())
+//                app += s;
+//
+//            //Prints out to file and System
+//            String out = "Image " + img.getName() + " predicted as: " + app;
+//            System.out.println(out);
+//            printer.println(out);
+//
+//        }
+
+    }
+
+    private static void validateVerifier(Annotator<FImage, String> annotator,
+                                         GroupedDataset<String, ListDataset<FImage>, FImage> validation){
+        int corr = 0, size = 0;
+        for(Map.Entry<String, ListDataset<FImage>> en: validation.entrySet()){
+            for(FImage img: en.getValue()){
+                ClassificationResult<String> res = annotator.classify(img);
+
+                String app = "";
+                for(String s: res.getPredictedClasses())
+                    app += s;
+
+                if(app.equals(en.getKey()))
+                    corr++;
+
+//                String out = en.getKey() + ":" + app + ":";
+//                System.out.println(out);
+            }
+            size += en.getValue().size();
         }
-        PrintWriter printer = new PrintWriter(fileWriter);
-
-        for(int i = 0; i < testing.size(); i ++){
-            FileObject img = testing.getFileObject(i);
-
-            //Classifies the Image and returns a result
-            ClassificationResult<String> res = annot.classify(testing.get(i));
-
-            String app = "";
-            for(String s: res.getPredictedClasses())
-                app += s;
-
-            //Prints out to file and System
-            String out = "Image " + img.getName() + " predicted as: " + app;
-            System.out.println(out);
-            printer.println(out);
-
-        }
-
+        System.out.println("accuracy: " + corr +" "+size);
     }
 }

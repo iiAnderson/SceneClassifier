@@ -41,6 +41,6 @@ public class OurExtractor implements FeatureExtractor<DoubleFV, FImage> {
         }
 
         return new FloatFV(newImage.subtractInplace(tot/pixelTot)
-                                   .getFloatPixelVector()).normaliseFV();
+                .getFloatPixelVector()).normaliseFV();
     }
 }

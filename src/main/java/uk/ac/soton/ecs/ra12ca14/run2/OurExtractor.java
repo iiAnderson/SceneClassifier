@@ -25,7 +25,16 @@ public class OurExtractor implements FeatureExtractor<DoubleFV, FImage> {
 
         BagOfVisualWords<float[]> bovw = new BagOfVisualWords<>(assigner);
 
-        RectangleSampler sampler = new RectangleSampler(image, 4, 4, 8, 8);
+        float tot = 0;
+        int pixelTot = 0;
+        for(int i = 0; i < image.getWidth(); i++){
+            for(int j = 0; j < image.getHeight(); j++){
+                tot += image.pixels[j][i];
+                pixelTot++;
+            }
+        }
+
+        RectangleSampler sampler = new RectangleSampler(image.subtractInplace(tot/pixelTot), 4, 4, 8, 8);
 
         Iterator<Rectangle> iterator = sampler.iterator();
         LocalFeatureList<LocalFeatureImpl<SpatialLocation, FloatFV>> list =
