@@ -48,13 +48,24 @@ public class App {
 
         annotator.trainMultiClass(trainingSplit);
 
+        for(int i = 0; i < testing.size(); i ++){
+            FileObject img = testing.getFileObject(i);
+            FileContent content = null;
+            try {
+                content = img.getContent();
+            } catch (FileSystemException e) {
+                e.printStackTrace();
+                return;
+            }
 
-        ClassificationEvaluator<CMResult<String>, String, FImage> eval =
-                new ClassificationEvaluator<>(
-                        annotator, splitter.getTestDataset(), new CMAnalyser<FImage, String>(CMAnalyser.Strategy.SINGLE));
+            ClassificationResult<String> res = annotator.classify((FImage) content);
 
-        Map<FImage, ClassificationResult<String>> guesses = eval.evaluate();
-        CMResult<String> result = eval.analyse(guesses);
-        System.out.println(result);
+            String app = "";
+            for(String s: res.getPredictedClasses())
+                app += s;
+
+            System.out.println("Image " + img.getName() + " predicted as: " + app);
+
+        }
     }
 }
