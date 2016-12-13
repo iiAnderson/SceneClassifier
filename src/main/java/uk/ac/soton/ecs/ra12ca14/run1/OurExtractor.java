@@ -7,7 +7,7 @@ import org.openimaj.image.processing.resize.*;
 /**
  * Created by chloeallan on 30/11/2016.
  */
-public class OurExtractor implements FeatureExtractor<FloatFV, FImage> {
+public class OurExtractor implements FeatureExtractor<DoubleFV, FImage> {
 
     private ResizeProcessor resize = null;
 
@@ -15,7 +15,7 @@ public class OurExtractor implements FeatureExtractor<FloatFV, FImage> {
         resize = new ResizeProcessor(size, size);
     }
 
-    public FloatFV extractFeature(FImage image) {
+    public DoubleFV extractFeature(FImage image) {
         FImage newImage = null;
         if (image.getWidth() != image.getHeight()) {
 
@@ -41,6 +41,6 @@ public class OurExtractor implements FeatureExtractor<FloatFV, FImage> {
         }
 
         return new FloatFV(newImage.subtractInplace(tot/pixelTot)
-                                   .getFloatPixelVector());
+                                   .getFloatPixelVector()).normaliseFV();
     }
 }
