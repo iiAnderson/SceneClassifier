@@ -52,8 +52,13 @@ public class App {
 
         annotator.trainMultiClass(trainingSplit);
 
-        File output = new File("./output/run1.txt");
+        File output = new File("run1.txt");
         FileWriter fileWriter = null;
+        try {
+            if(!output.exists())
+                output.createNewFile();
+        }catch (Exception e){}
+
         try {
             fileWriter = new FileWriter(output);
         } catch (IOException e) {

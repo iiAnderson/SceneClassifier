@@ -78,8 +78,10 @@ public class App {
 
         File output = new File("run2.txt");
         try {
-            output.createNewFile();
+            if(!output.exists())
+                output.createNewFile();
         }catch (Exception e){}
+
         FileWriter fileWriter = null;
         try {
             fileWriter = new FileWriter(output);

@@ -98,8 +98,9 @@ public class App {
 
         File output = new File("run3.txt");
         try {
-            output.createNewFile();
-        } catch(Exception e){}
+            if(!output.exists())
+                output.createNewFile();
+        }catch (Exception e){}
 
         FileWriter fileWriter = null;
         try {
