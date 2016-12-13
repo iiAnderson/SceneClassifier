@@ -53,9 +53,9 @@ public class App {
             Logger.getLogger(App.class).error("Could not read the dataset " + e);
         }
 
-        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(training, 50, 40, 0);
+        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(training, 50, 0, 50);
 
-        caching(splitter.getTrainingDataset());
+        caching(training, testing);
     }
 
     public static HardAssigner<byte[], float[], IntFloatPair> trainQuantiser(
@@ -85,15 +85,14 @@ public class App {
      * Exercise 2: read/writing the hard assigner to a file and creating a disk caching feature extractor on top of
      * the existing feature extractor
      */
-    private static void caching(GroupedDataset<String, ListDataset<FImage>, FImage> data){
-        GroupedRandomSplitter<String, FImage> splits =
-                new GroupedRandomSplitter<>(data, 15, 0, 15);
+    private static void caching(GroupedDataset<String, ListDataset<FImage>, FImage> data,
+                                ListDataset<FImage> testing){
 
         DenseSIFT dsift = new DenseSIFT(5, 7);
         PyramidDenseSIFT<FImage> pdsift = new PyramidDenseSIFT<FImage>(dsift, 6f, 7);
 
         HardAssigner<byte[], float[], IntFloatPair> assigner =
-            trainQuantiser(GroupedUniformRandomisedSampler.sample(splits.getTrainingDataset(), 30), pdsift);
+            trainQuantiser(GroupedUniformRandomisedSampler.sample(data, 30), pdsift);
 
         //trying to read the Hard Assigner from a file, if the file doesn't exist the assigner will return what the
         //other methods use
@@ -111,12 +110,14 @@ public class App {
 
         LiblinearAnnotator<FImage, String> ann = new LiblinearAnnotator<>(
                 extractor, LiblinearAnnotator.Mode.MULTILABEL, SolverType.L2R_L2LOSS_SVC, 15.0, 0.00001d);
-        ann.train(splits.getTrainingDataset());
+        System.out.println("Started training");
+        ann.train(data);
+        System.out.println("Finished Training");
 
         ClassificationEvaluator<CMResult<String>, String, FImage> eval =
                 new ClassificationEvaluator<>(
-                        ann, splits.getTestDataset(), new CMAnalyser<FImage, String>(CMAnalyser.Strategy.SINGLE));
-
+                        ann, testing, new CMAnalyser<FImage, String>(CMAnalyser.Strategy.SINGLE));
+        System.out.println("Built Evaluator");
         Map<FImage, ClassificationResult<String>> guesses = eval.evaluate();
         CMResult<String> result = eval.analyse(guesses);
         System.out.println(result);
