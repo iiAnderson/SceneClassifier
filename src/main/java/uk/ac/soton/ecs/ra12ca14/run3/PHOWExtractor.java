@@ -8,33 +8,36 @@ import org.openimaj.image.feature.local.aggregate.*;
 import org.openimaj.ml.clustering.assignment.*;
 import org.openimaj.util.pair.*;
 
-/**
- * OpenIMAJ Tutorial 12 - Chloe Allan
- * PHOW Extractor implementation taken from the tutorial to train our classifier. It uses a BlockSpatialAggregator
- * with a BagOfVisualWords to get 4 histograms for the image. The histograms are appended and then normalised, and
- * then returned.
- */
+
 public class PHOWExtractor implements FeatureExtractor<DoubleFV, FImage> {
 
-    PyramidDenseSIFT<FImage> pdsift;
+    //Used to pull keypoints from an image
+    PyramidDenseSIFT<FImage> siftAnalyser;
+    //Contains the vocab
     HardAssigner<byte[], float[], IntFloatPair> assigner;
 
-    public PHOWExtractor(PyramidDenseSIFT<FImage> pdsift, HardAssigner<byte[], float[], IntFloatPair> assigner)
+    public PHOWExtractor(PyramidDenseSIFT<FImage> siftAnalyser, HardAssigner<byte[], float[], IntFloatPair> assigner)
     {
-        this.pdsift = pdsift;
+        this.siftAnalyser = siftAnalyser;
         this.assigner = assigner;
     }
 
+    /*
+        Performs the PHOW extraction by extracting dense sifts using the PyramidDenseSIFT by analysing the images
+        and later extracting the keypoints from the image using byteKeypoints.
+        The Bag Of Visual Words takes the HardAssigner, which contains the vocabulary built using KNN,
+        The Aggregator uses the BOVW vocabulary to build a pyramid of the features, and then aggregates this
+        into a single Sparse Vector, and is then normalised into a DoubleFV.
+     */
     public DoubleFV extractFeature(FImage object) {
         FImage image = object.getImage();
-        pdsift.analyseImage(image);
+        siftAnalyser.analyseImage(image);
 
         BagOfVisualWords<byte[]> bovw = new BagOfVisualWords<>(assigner);
-
 
         PyramidSpatialAggregator<byte[], SparseIntFV> spatial = new PyramidSpatialAggregator<>(
                 bovw, 2, 4);
 
-        return spatial.aggregate(pdsift.getByteKeypoints(0.015f), image.getBounds()).normaliseFV();
+        return spatial.aggregate(siftAnalyser.getByteKeypoints(0.015f), image.getBounds()).normaliseFV();
     }
 }

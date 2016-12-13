@@ -91,13 +91,13 @@ public class App {
                 return;
             }
 
-            ClassificationResult<String> res = annotator.classify((FImage) content);
+            ClassificationResult<String> res = annotator.classify(testing.get(i));
 
             String app = "";
             for(String s: res.getPredictedClasses())
                 app += s;
 
-            String out = "Image " + img.getName() + " predicted as: " + app;
+            String out = "Image " + img.getName().getBaseName() + " predicted as: " + app;
             System.out.println(out);
             printer.println(out);
 
@@ -119,9 +119,6 @@ public class App {
 
     private static HardAssigner<float[], float[], IntFloatPair> trainWithKMeans(
             Dataset<FImage> sample) {
-
-//        LocalFeatureList<LocalFeatureImpl<SpatialLocation, FloatFV>> features =
-//                new MemoryLocalFeatureList<>();
 
         List<FloatFV> vec = new ArrayList<>();
 

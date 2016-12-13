@@ -1,6 +1,5 @@
 package uk.ac.soton.ecs.ra12ca14.run3;
 
-import de.bwaldvogel.liblinear.*;
 import org.apache.commons.vfs2.*;
 import org.apache.log4j.*;
 import org.openimaj.data.*;
@@ -8,31 +7,20 @@ import org.openimaj.data.dataset.*;
 import org.openimaj.experiment.dataset.sampling.*;
 import org.openimaj.experiment.dataset.split.*;
 import org.openimaj.experiment.evaluation.classification.*;
-import org.openimaj.experiment.evaluation.classification.analysers.confusionmatrix.*;
 import org.openimaj.feature.*;
 import org.openimaj.feature.local.data.*;
 import org.openimaj.feature.local.list.*;
 import org.openimaj.image.*;
-import org.openimaj.image.annotation.evaluation.datasets.*;
 import org.openimaj.image.feature.dense.gradient.dsift.*;
-import org.openimaj.io.*;
-import org.openimaj.ml.annotation.linear.*;
+import org.openimaj.ml.annotation.bayes.NaiveBayesAnnotator;
 import org.openimaj.ml.clustering.*;
 import org.openimaj.ml.clustering.assignment.*;
 import org.openimaj.ml.clustering.kmeans.*;
-import org.openimaj.ml.kernel.*;
 import org.openimaj.util.pair.*;
 
 import java.io.*;
 import java.util.*;
 
-/**
- * OpenIMAJ Tutorial 12 - Chloe Allan
- * Tutorial code to build and train an image classifier to use on the Caltech 101 data set of images. The class
- * constructs a DenseSIFT extractor and uses it to create a PyramidDenseSIFT extractor along with the window
- * size to apply the extractor to. The code also builds a HardAssigner that's used to assign features to identifiers.
- * Exercises 1, 2 and 3 are within the code
- */
 public class App {
     public static void main( String[] args ) {
         VFSGroupDataset<FImage> training = null;
@@ -54,14 +42,14 @@ public class App {
             return;
         }
 
-        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(training, 80, 10, 10);
+        GroupedRandomSplitter<String, FImage> splitter =
+                new GroupedRandomSplitter<>(training, 80, 10, 10);
 
-        caching(splitter.getTrainingDataset(), testing);
+        performTask(splitter.getTrainingDataset(), testing);
     }
 
-    public static HardAssigner<byte[], float[], IntFloatPair> trainQuantiser(
-            Dataset<FImage> sample, PyramidDenseSIFT<FImage> pdsift)
-    {
+    public static HardAssigner<byte[], float[], IntFloatPair> trainWithKMeans(
+            Dataset<FImage> sample, PyramidDenseSIFT<FImage> pdsift) {
         List<LocalFeatureList<ByteDSIFTKeypoint>> allkeys = new ArrayList<>();
 
         for (FImage rec : sample) {
@@ -71,6 +59,7 @@ public class App {
             allkeys.add(pdsift.getByteKeypoints(0.005f));
         }
 
+        //Takes the first 10000 keys
         if (allkeys.size() > 10000)
             allkeys = allkeys.subList(0, 10000);
 
@@ -82,38 +71,39 @@ public class App {
         return result.defaultHardAssigner();
     }
 
-    /**
-     * Exercise 2: read/writing the hard assigner to a file and creating a disk caching feature extractor on top of
-     * the existing feature extractor
-     */
-    private static void caching(GroupedDataset<String, ListDataset<FImage>, FImage> data,
+    private static void performTask(GroupedDataset<String, ListDataset<FImage>, FImage> data,
                                 VFSListDataset<FImage> testing){
 
-        DenseSIFT dsift = new DenseSIFT(5, 7);
-        PyramidDenseSIFT<FImage> pdsift = new PyramidDenseSIFT<FImage>(dsift, 6f, 7);
+        PyramidDenseSIFT<FImage> pdsift = new PyramidDenseSIFT<FImage>(
+                new DenseSIFT(5, 7), 6f, 7);
 
+        //Build the Vocab and save it in the HardAssigner
         HardAssigner<byte[], float[], IntFloatPair> assigner =
-            trainQuantiser(GroupedUniformRandomisedSampler.sample(data, 30), pdsift);
+                trainWithKMeans(GroupedUniformRandomisedSampler.sample(data, 30), pdsift);
 
-        FeatureExtractor<DoubleFV, FImage> extractor2 = new PHOWExtractor(pdsift, assigner);
+        FeatureExtractor<DoubleFV, FImage> extractor = new PHOWExtractor(pdsift, assigner);
 
-        HomogeneousKernelMap map = new HomogeneousKernelMap(HomogeneousKernelMap.KernelType.Chi2,
-                HomogeneousKernelMap.WindowType.Rectangular);
-        FeatureExtractor extractor =  map.createWrappedExtractor(extractor2);
-
-        LiblinearAnnotator<FImage, String> ann = new LiblinearAnnotator<>(
-                extractor, LiblinearAnnotator.Mode.MULTILABEL, SolverType.L2R_L2LOSS_SVC, 15.0, 0.00001d);
+        NaiveBayesAnnotator<FImage, String> ann = new NaiveBayesAnnotator<>(
+                extractor, NaiveBayesAnnotator.Mode.ALL);
 
         System.out.println("Started training");
+
+        //Training the data
         ann.train(data);
+
         System.out.println("Finished Training");
 
-        File output = new File("./output/run3.txt");
+        File output = new File("run3.txt");
+        try {
+            output.createNewFile();
+        } catch(Exception e){}
+
         FileWriter fileWriter = null;
         try {
             fileWriter = new FileWriter(output);
         } catch (IOException e) {
             e.printStackTrace();
+            return;
         }
         PrintWriter printer = new PrintWriter(fileWriter);
 
@@ -127,12 +117,14 @@ public class App {
                 return;
             }
 
+            //Classifies the Image and returns a result
             ClassificationResult<String> res = ann.classify((FImage) content);
 
             String app = "";
             for(String s: res.getPredictedClasses())
                 app += s;
 
+            //Prints out to file and System
             String out = "Image " + img.getName() + " predicted as: " + app;
             System.out.println(out);
             printer.println(out);
