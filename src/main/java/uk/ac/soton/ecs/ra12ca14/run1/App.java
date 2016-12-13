@@ -10,6 +10,10 @@ import org.openimaj.feature.*;
 import org.openimaj.image.*;
 import org.openimaj.ml.annotation.basic.*;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.*;
 
 /**
@@ -21,13 +25,12 @@ public class App {
 
         VFSGroupDataset<FImage> training = null;
         try {
-            training = new VFSGroupDataset<>("zip:http://comp3204.ecs.soton.ac.uk/cw/training.zip",
+            training = new VFSGroupDataset<>("zip:http://comp3204.ecs.soton.ac.uk/cw/training.zip!/training",
                     ImageUtilities.FIMAGE_READER);
         } catch (FileSystemException e) {
             Logger.getLogger(App.class).error("Could not read the dataset " + e);
+            return;
         }
-
-        training.remove("training");
 
 
         VFSListDataset<FImage> testing = null;
@@ -36,6 +39,7 @@ public class App {
                     ImageUtilities.FIMAGE_READER);
         } catch (FileSystemException e) {
             Logger.getLogger(App.class).error("Could not read the dataset " + e);
+            return;
         }
 
         KNNAnnotator<FImage, String, DoubleFV> annotator = KNNAnnotator.create(new OurExtractor(16),
@@ -47,6 +51,15 @@ public class App {
         GroupedDataset<String, ListDataset<FImage>, FImage> trainingSplit = splitter.getTrainingDataset();
 
         annotator.trainMultiClass(trainingSplit);
+
+        File output = new File("./output/run1.txt");
+        FileWriter fileWriter = null;
+        try {
+            fileWriter = new FileWriter(output);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        PrintWriter printer = new PrintWriter(fileWriter);
 
         for(int i = 0; i < testing.size(); i ++){
             FileObject img = testing.getFileObject(i);
@@ -64,7 +77,9 @@ public class App {
             for(String s: res.getPredictedClasses())
                 app += s;
 
-            System.out.println("Image " + img.getName() + " predicted as: " + app);
+            String out = "Image " + img.getName() + " predicted as: " + app;
+            System.out.println(out);
+            printer.println(out);
 
         }
     }

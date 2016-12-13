@@ -37,13 +37,13 @@ public class App {
     public static void main( String[] args ) {
         VFSGroupDataset<FImage> training = null;
         try {
-            training = new VFSGroupDataset<>("zip:http://comp3204.ecs.soton.ac.uk/cw/training.zip",
+            training = new VFSGroupDataset<>("zip:http://comp3204.ecs.soton.ac.uk/cw/training.zip!/training",
                     ImageUtilities.FIMAGE_READER);
         } catch (FileSystemException e) {
             Logger.getLogger(App.class).error("Could not read the dataset " + e);
+            return;
         }
 
-        training.remove("training");
 
         VFSListDataset<FImage> testing = null;
         try {
@@ -51,6 +51,7 @@ public class App {
                     ImageUtilities.FIMAGE_READER);
         } catch (FileSystemException e) {
             Logger.getLogger(App.class).error("Could not read the dataset " + e);
+            return;
         }
 
         GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(training, 80, 10, 10);
@@ -86,7 +87,7 @@ public class App {
      * the existing feature extractor
      */
     private static void caching(GroupedDataset<String, ListDataset<FImage>, FImage> data,
-                                ListDataset<FImage> testing){
+                                VFSListDataset<FImage> testing){
 
         DenseSIFT dsift = new DenseSIFT(5, 7);
         PyramidDenseSIFT<FImage> pdsift = new PyramidDenseSIFT<FImage>(dsift, 6f, 7);
@@ -107,16 +108,34 @@ public class App {
         ann.train(data);
         System.out.println("Finished Training");
 
-        for(int i = 0; i < testing.size(); i ++){
-            FImage img = testing.get(i);
+        File output = new File("./output/run3.txt");
+        FileWriter fileWriter = null;
+        try {
+            fileWriter = new FileWriter(output);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        PrintWriter printer = new PrintWriter(fileWriter);
 
-            ClassificationResult<String> res = ann.classify(img);
+        for(int i = 0; i < testing.size(); i ++){
+            FileObject img = testing.getFileObject(i);
+            FileContent content = null;
+            try {
+                content = img.getContent();
+            } catch (FileSystemException e) {
+                e.printStackTrace();
+                return;
+            }
+
+            ClassificationResult<String> res = ann.classify((FImage) content);
 
             String app = "";
             for(String s: res.getPredictedClasses())
                 app += s;
 
-            System.out.println("Image " + i + " predicted as: " + app);
+            String out = "Image " + img.getName() + " predicted as: " + app;
+            System.out.println(out);
+            printer.println(out);
 
         }
 

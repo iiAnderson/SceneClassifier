@@ -25,6 +25,10 @@ import org.openimaj.ml.clustering.assignment.*;
 import org.openimaj.ml.clustering.kmeans.*;
 import org.openimaj.util.pair.*;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.*;
 
 import static uk.ac.soton.ecs.ra12ca14.run2.App.pullLocalFeaturesRectangle;
@@ -51,9 +55,10 @@ public class App {
                     ImageUtilities.FIMAGE_READER);
         } catch (FileSystemException e) {
             Logger.getLogger(App.class).error("Could not read the dataset " + e);
+            return;
         }
 
-        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(training, 80, 20, 0);
+        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(training, 60, 20, 20);
 
 
         HardAssigner<float[], float[], IntFloatPair> assigner =
@@ -67,16 +72,34 @@ public class App {
         annotator.train(training);
         System.out.println("Training completed");
 
-        for(int i = 0; i < testing.size(); i ++){
-            FImage img = testing.get(i);
+        File output = new File("./output/run2.txt");
+        FileWriter fileWriter = null;
+        try {
+            fileWriter = new FileWriter(output);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        PrintWriter printer = new PrintWriter(fileWriter);
 
-            ClassificationResult<String> res = annotator.classify(img);
+        for(int i = 0; i < testing.size(); i ++){
+            FileObject img = testing.getFileObject(i);
+            FileContent content = null;
+            try {
+                content = img.getContent();
+            } catch (FileSystemException e) {
+                e.printStackTrace();
+                return;
+            }
+
+            ClassificationResult<String> res = annotator.classify((FImage) content);
 
             String app = "";
             for(String s: res.getPredictedClasses())
                 app += s;
 
-            System.out.println("Image " + i + " predicted as: " + app);
+            String out = "Image " + img.getName() + " predicted as: " + app;
+            System.out.println(out);
+            printer.println(out);
 
         }
     }
@@ -97,8 +120,8 @@ public class App {
     private static HardAssigner<float[], float[], IntFloatPair> trainWithKMeans(
             Dataset<FImage> sample) {
 
-        LocalFeatureList<LocalFeatureImpl<SpatialLocation, FloatFV>> features =
-                new MemoryLocalFeatureList<>();
+//        LocalFeatureList<LocalFeatureImpl<SpatialLocation, FloatFV>> features =
+//                new MemoryLocalFeatureList<>();
 
         List<FloatFV> vec = new ArrayList<>();
 
@@ -115,14 +138,13 @@ public class App {
             }
         }
 
-        System.out.println(features.size());
+        System.out.println(vec.size());
 
         float[][] vectors = new float[10000][];
 
         for(int i = 0; i < 10000; i++){
             vectors[i] = vec.get(i).getVector();
         }
-
 
         FloatKMeans km = FloatKMeans.createKDTreeEnsemble(300);
 
