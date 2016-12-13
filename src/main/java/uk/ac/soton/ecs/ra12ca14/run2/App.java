@@ -66,17 +66,20 @@ public class App {
         System.out.println("Built Extractor");
         OurExtractor extractor = new OurExtractor(assigner);
         LiblinearAnnotator<FImage, String> annotator = new LiblinearAnnotator<>(extractor,
-                LiblinearAnnotator.Mode.MULTILABEL, SolverType.L2R_L2LOSS_SVC, 1.0, 0.00001d);
+                LiblinearAnnotator.Mode.MULTILABEL, SolverType.MCSVM_CS, 15.0, 0.00001d);
 
 
         for(Map.Entry<String, VFSListDataset<FImage>> entry: training.entrySet())
-            System.out.println(entry.getKey());
+            System.out.println(entry.getKey() + " " + entry.getValue().size());
 
 
         annotator.train(training);
         System.out.println("Training completed");
 
-        File output = new File("./output/run2.txt");
+        File output = new File("run2.txt");
+        try {
+            output.createNewFile();
+        }catch (Exception e){}
         FileWriter fileWriter = null;
         try {
             fileWriter = new FileWriter(output);
