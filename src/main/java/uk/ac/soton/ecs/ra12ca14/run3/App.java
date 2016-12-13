@@ -53,7 +53,7 @@ public class App {
             Logger.getLogger(App.class).error("Could not read the dataset " + e);
         }
 
-        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(training, 100, 0, 0);
+        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(training, 80, 10, 10);
 
         caching(splitter.getTrainingDataset(), testing);
     }
@@ -94,15 +94,7 @@ public class App {
         HardAssigner<byte[], float[], IntFloatPair> assigner =
             trainQuantiser(GroupedUniformRandomisedSampler.sample(data, 30), pdsift);
 
-        //trying to read the Hard Assigner from a file, if the file doesn't exist the assigner will return what the
-        //other methods use
-        //assigner = trainQuantiser(GroupedUniformRandomisedSampler.sample(splits.getTrainingDataset(), 30), pdsift);
-
         FeatureExtractor<DoubleFV, FImage> extractor2 = new PHOWExtractor(pdsift, assigner);
-
-        //creating the Disk Caching Feature Extractor from the existing Feature Extractor
-//        DiskCachingFeatureExtractor<DoubleFV, Caltech101.Record<FImage>> extractor =
-//                new DiskCachingFeatureExtractor<>(new File("caching"), extractor2);
 
         HomogeneousKernelMap map = new HomogeneousKernelMap(HomogeneousKernelMap.KernelType.Chi2,
                 HomogeneousKernelMap.WindowType.Rectangular);
@@ -110,6 +102,7 @@ public class App {
 
         LiblinearAnnotator<FImage, String> ann = new LiblinearAnnotator<>(
                 extractor, LiblinearAnnotator.Mode.MULTILABEL, SolverType.L2R_L2LOSS_SVC, 15.0, 0.00001d);
+
         System.out.println("Started training");
         ann.train(data);
         System.out.println("Finished Training");

@@ -62,19 +62,23 @@ public class App {
         System.out.println("Built Extractor");
         OurExtractor extractor = new OurExtractor(assigner);
         LiblinearAnnotator<FImage, String> annotator = new LiblinearAnnotator<>(extractor,
-                LiblinearAnnotator.Mode.MULTILABEL, SolverType.L2R_L2LOSS_SVC, 15, 0.00001d);
+                LiblinearAnnotator.Mode.MULTILABEL, SolverType.L2R_L2LOSS_SVC, 1.0, 0.00001d);
 
         annotator.train(training);
         System.out.println("Training completed");
 
-        ClassificationEvaluator<CMResult<String>, String, FImage> eval =
-                new ClassificationEvaluator<>(
-                        annotator, splitter.getValidationDataset(),
-                        new CMAnalyser<FImage, String>(CMAnalyser.Strategy.SINGLE));
+        for(int i = 0; i < testing.size(); i ++){
+            FImage img = testing.get(i);
 
-        Map<FImage, ClassificationResult<String>> guesses = eval.evaluate();
-        CMResult<String> result = eval.analyse(guesses);
-        System.out.println(result);
+            ClassificationResult<String> res = annotator.classify(img);
+
+            String app = "";
+            for(String s: res.getPredictedClasses())
+                app += s;
+
+            System.out.println("Image " + i + " predicted as: " + app);
+
+        }
     }
 
     static void pullLocalFeaturesRectangle(Iterator<Rectangle> iterator, FImage image,
@@ -96,20 +100,33 @@ public class App {
         LocalFeatureList<LocalFeatureImpl<SpatialLocation, FloatFV>> features =
                 new MemoryLocalFeatureList<>();
 
+        List<FloatFV> vec = new ArrayList<>();
+
         for (FImage image : sample) {
             RectangleSampler sampler = new RectangleSampler(image, 4, 4, 8, 8);
 
             Iterator<Rectangle> iterator = sampler.iterator();
 
-            App.pullLocalFeaturesRectangle(iterator, image, features);
+            while(iterator.hasNext()) {
+
+                Rectangle rec = iterator.next();
+
+                vec.add(new FloatFV(image.extractROI(rec).getFloatPixelVector()));
+            }
         }
 
         System.out.println(features.size());
 
+        float[][] vectors = new float[10000][];
+
+        for(int i = 0; i < 10000; i++){
+            vectors[i] = vec.get(i).getVector();
+        }
+
+
         FloatKMeans km = FloatKMeans.createKDTreeEnsemble(300);
-        DataSource<float[]> datasource =
-                new LocalFeatureListDataSource<>(features);
-        FloatCentroidsResult result = km.cluster(datasource);
+
+        FloatCentroidsResult result = km.cluster(vectors);
 
         return result.defaultHardAssigner();
     }
