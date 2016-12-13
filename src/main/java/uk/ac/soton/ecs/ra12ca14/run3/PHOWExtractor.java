@@ -31,12 +31,22 @@ public class PHOWExtractor implements FeatureExtractor<DoubleFV, FImage> {
      */
     public DoubleFV extractFeature(FImage object) {
         FImage image = object.getImage();
-        siftAnalyser.analyseImage(image);
+
+        float tot = 0;
+        int pixelTot = 0;
+        for(int i = 0; i < image.getWidth(); i++){
+            for(int j = 0; j < image.getHeight(); j++){
+                tot += image.pixels[j][i];
+                pixelTot++;
+            }
+        }
+
+        siftAnalyser.analyseImage(image.subtractInplace(tot/pixelTot));
 
         BagOfVisualWords<byte[]> bovw = new BagOfVisualWords<>(assigner);
 
         PyramidSpatialAggregator<byte[], SparseIntFV> spatial = new PyramidSpatialAggregator<>(
-                bovw, 2, 4);
+                bovw, 2, 4, 6);
 
         return spatial.aggregate(siftAnalyser.getByteKeypoints(0.015f), image.getBounds()).normaliseFV();
     }

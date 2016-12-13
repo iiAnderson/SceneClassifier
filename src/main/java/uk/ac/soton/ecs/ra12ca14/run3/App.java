@@ -57,7 +57,16 @@ public class App {
         for (FImage rec : sample) {
             FImage img = rec.getImage();
 
-            pdsift.analyseImage(img);
+            float tot = 0;
+            int pixelTot = 0;
+            for(int i = 0; i < img.getWidth(); i++){
+                for(int j = 0; j < img.getHeight(); j++){
+                    tot += img.pixels[j][i];
+                    pixelTot++;
+                }
+            }
+
+            pdsift.analyseImage(img.subtractInplace(tot/pixelTot));
 
             allkeys.add(pdsift.getByteKeypoints(0.005f));
         }
@@ -83,7 +92,7 @@ public class App {
 
         //Build the Vocab and save it in the HardAssigner
         HardAssigner<byte[], float[], IntFloatPair> assigner =
-                trainWithKMeans(GroupedUniformRandomisedSampler.sample(train, 20), sift);
+                trainWithKMeans(GroupedUniformRandomisedSampler.sample(train, 30), sift);
 
         FeatureExtractor<DoubleFV, FImage> extractor = new PHOWExtractor(sift, assigner);
 

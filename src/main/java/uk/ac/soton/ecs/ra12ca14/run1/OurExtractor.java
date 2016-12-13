@@ -20,10 +20,10 @@ public class OurExtractor implements FeatureExtractor<DoubleFV, FImage> {
         if (image.getWidth() != image.getHeight()) {
 
             if (image.getHeight() > image.getWidth()) {
-                newImage = image.extractCenter(image.getWidth(), image.getWidth()).normalise();
+                newImage = image.extractCenter(image.getWidth(), image.getWidth());
                 resize.processImage(newImage);
             } else if (image.getWidth() > image.getHeight()) {
-                newImage = image.extractCenter(image.getHeight(), image.getHeight()).normalise();
+                newImage = image.extractCenter(image.getHeight(), image.getHeight());
                 resize.processImage(newImage);
             }
         } else {
