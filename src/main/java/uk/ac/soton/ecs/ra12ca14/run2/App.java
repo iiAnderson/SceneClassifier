@@ -31,8 +31,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
 
-import static uk.ac.soton.ecs.ra12ca14.run2.App.pullLocalFeaturesRectangle;
-
 /**
  * Created by chloeallan on 09/12/2016.
  */
@@ -58,7 +56,8 @@ public class App {
             return;
         }
 
-        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(training, 60, 20, 20);
+        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(
+                training, 20, 20, 20);
 
 
         HardAssigner<float[], float[], IntFloatPair> assigner =
@@ -68,6 +67,11 @@ public class App {
         OurExtractor extractor = new OurExtractor(assigner);
         LiblinearAnnotator<FImage, String> annotator = new LiblinearAnnotator<>(extractor,
                 LiblinearAnnotator.Mode.MULTILABEL, SolverType.L2R_L2LOSS_SVC, 1.0, 0.00001d);
+
+
+        for(Map.Entry<String, VFSListDataset<FImage>> entry: training.entrySet())
+            System.out.println(entry.getKey());
+
 
         annotator.train(training);
         System.out.println("Training completed");
@@ -83,13 +87,6 @@ public class App {
 
         for(int i = 0; i < testing.size(); i ++){
             FileObject img = testing.getFileObject(i);
-            FileContent content = null;
-            try {
-                content = img.getContent();
-            } catch (FileSystemException e) {
-                e.printStackTrace();
-                return;
-            }
 
             ClassificationResult<String> res = annotator.classify(testing.get(i));
 
@@ -101,19 +98,6 @@ public class App {
             System.out.println(out);
             printer.println(out);
 
-        }
-    }
-
-    static void pullLocalFeaturesRectangle(Iterator<Rectangle> iterator, FImage image,
-                                              LocalFeatureList<LocalFeatureImpl<SpatialLocation, FloatFV>> features){
-        while(iterator.hasNext()) {
-
-            Rectangle rec = iterator.next();
-            Point2d center = rec.calculateCentroid();
-
-            features.add(new LocalFeatureImpl<>(
-                    new SpatialLocation(center.getX(), center.getY()),
-                    new FloatFV(image.extractROI(rec).getFloatPixelVector())));
         }
     }
 

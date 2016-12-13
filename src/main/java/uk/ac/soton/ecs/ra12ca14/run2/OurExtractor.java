@@ -6,6 +6,7 @@ import org.openimaj.feature.local.list.*;
 import org.openimaj.image.*;
 import org.openimaj.image.feature.local.aggregate.*;
 import org.openimaj.image.pixel.sampling.*;
+import org.openimaj.math.geometry.point.Point2d;
 import org.openimaj.math.geometry.shape.*;
 import org.openimaj.ml.clustering.assignment.*;
 import org.openimaj.util.pair.*;
@@ -30,8 +31,21 @@ public class OurExtractor implements FeatureExtractor<DoubleFV, FImage> {
         LocalFeatureList<LocalFeatureImpl<SpatialLocation, FloatFV>> list =
                 new MemoryLocalFeatureList<>();
 
-        App.pullLocalFeaturesRectangle(iterator, image, list);
+        pullLocalFeaturesRectangle(iterator, image, list);
 
         return bovw.aggregate(list).normaliseFV();
+    }
+
+    static void pullLocalFeaturesRectangle(Iterator<Rectangle> iterator, FImage image,
+                                           LocalFeatureList<LocalFeatureImpl<SpatialLocation, FloatFV>> features){
+        while(iterator.hasNext()) {
+
+            Rectangle rec = iterator.next();
+            Point2d center = rec.calculateCentroid();
+
+            features.add(new LocalFeatureImpl<>(
+                    new SpatialLocation(center.getX(), center.getY()),
+                    new FloatFV(image.extractROI(rec).getFloatPixelVector())));
+        }
     }
 }

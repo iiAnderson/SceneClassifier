@@ -58,20 +58,14 @@ public class App {
             fileWriter = new FileWriter(output);
         } catch (IOException e) {
             e.printStackTrace();
+            return;
         }
         PrintWriter printer = new PrintWriter(fileWriter);
 
         for(int i = 0; i < testing.size(); i ++){
             FileObject img = testing.getFileObject(i);
-            FileContent content = null;
-            try {
-                content = img.getContent();
-            } catch (FileSystemException e) {
-                e.printStackTrace();
-                return;
-            }
 
-            ClassificationResult<String> res = annotator.classify((FImage) content);
+            ClassificationResult<String> res = annotator.classify(testing.get(i));
 
             String app = "";
             for(String s: res.getPredictedClasses())

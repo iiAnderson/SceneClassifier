@@ -50,12 +50,14 @@ public class App {
 
     public static HardAssigner<byte[], float[], IntFloatPair> trainWithKMeans(
             Dataset<FImage> sample, PyramidDenseSIFT<FImage> pdsift) {
+
         List<LocalFeatureList<ByteDSIFTKeypoint>> allkeys = new ArrayList<>();
 
         for (FImage rec : sample) {
             FImage img = rec.getImage();
 
             pdsift.analyseImage(img);
+
             allkeys.add(pdsift.getByteKeypoints(0.005f));
         }
 
@@ -68,28 +70,29 @@ public class App {
         DataSource<byte[]> datasource = new LocalFeatureListDataSource<>(allkeys);
         ByteCentroidsResult result = km.cluster(datasource);
 
+        //hard assigner containing the vocab
         return result.defaultHardAssigner();
     }
 
-    private static void performTask(GroupedDataset<String, ListDataset<FImage>, FImage> data,
+    private static void performTask(GroupedDataset<String, ListDataset<FImage>, FImage> train,
                                 VFSListDataset<FImage> testing){
 
-        PyramidDenseSIFT<FImage> pdsift = new PyramidDenseSIFT<FImage>(
+        PyramidDenseSIFT<FImage> sift = new PyramidDenseSIFT<FImage>(
                 new DenseSIFT(5, 7), 6f, 7);
 
         //Build the Vocab and save it in the HardAssigner
         HardAssigner<byte[], float[], IntFloatPair> assigner =
-                trainWithKMeans(GroupedUniformRandomisedSampler.sample(data, 30), pdsift);
+                trainWithKMeans(GroupedUniformRandomisedSampler.sample(train, 20), sift);
 
-        FeatureExtractor<DoubleFV, FImage> extractor = new PHOWExtractor(pdsift, assigner);
+        FeatureExtractor<DoubleFV, FImage> extractor = new PHOWExtractor(sift, assigner);
 
-        NaiveBayesAnnotator<FImage, String> ann = new NaiveBayesAnnotator<>(
+        NaiveBayesAnnotator<FImage, String> annot = new NaiveBayesAnnotator<>(
                 extractor, NaiveBayesAnnotator.Mode.ALL);
 
         System.out.println("Started training");
 
         //Training the data
-        ann.train(data);
+        annot.train(train);
 
         System.out.println("Finished Training");
 
@@ -109,16 +112,9 @@ public class App {
 
         for(int i = 0; i < testing.size(); i ++){
             FileObject img = testing.getFileObject(i);
-            FileContent content = null;
-            try {
-                content = img.getContent();
-            } catch (FileSystemException e) {
-                e.printStackTrace();
-                return;
-            }
 
             //Classifies the Image and returns a result
-            ClassificationResult<String> res = ann.classify((FImage) content);
+            ClassificationResult<String> res = annot.classify(testing.get(i));
 
             String app = "";
             for(String s: res.getPredictedClasses())
