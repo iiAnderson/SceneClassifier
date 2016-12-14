@@ -55,12 +55,11 @@ public class App {
             return;
         }
 
-        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(
-                training, 50, 40, 10);
+        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(training, 60, 20, 20);
 
 
         HardAssigner<float[], float[], IntFloatPair> assigner =
-                trainWithKMeans(GroupedUniformRandomisedSampler.sample(training, 30));
+                trainWithKMeans(GroupedUniformRandomisedSampler.sample(splitter.getTestDataset(), 30));
 
         System.out.println("Built Extractor");
         RectangleSamplerExtractor extractor = new RectangleSamplerExtractor(assigner);
@@ -98,8 +97,8 @@ public class App {
             for(String s: res.getPredictedClasses())
                 app += s;
 
-            String out = "Image " + img.getName().getBaseName() + " predicted as: " + app;
-            System.out.println(out);
+            String out = img.getName().getBaseName() + " " + app;
+            //System.out.println(out);
             printer.println(out);
 
         }
@@ -155,9 +154,9 @@ public class App {
         }
 
 
-        float[][] vectors = new float[200000][];
+        float[][] vectors = new float[10000][];
 
-        for(int i = 0; i < 200000; i++){
+        for(int i = 0; i < 10000; i++){
             vectors[i] = vec.get(i).getVector();
         }
 
