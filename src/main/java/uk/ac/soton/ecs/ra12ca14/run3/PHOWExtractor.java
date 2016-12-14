@@ -32,16 +32,7 @@ public class PHOWExtractor implements FeatureExtractor<DoubleFV, FImage> {
     public DoubleFV extractFeature(FImage object) {
         FImage image = object.getImage();
 
-        float tot = 0;
-        int pixelTot = 0;
-        for(int i = 0; i < image.getWidth(); i++){
-            for(int j = 0; j < image.getHeight(); j++){
-                tot += image.pixels[j][i];
-                pixelTot++;
-            }
-        }
-
-        siftAnalyser.analyseImage(image.subtractInplace(tot/pixelTot));
+        siftAnalyser.analyseImage(image);
 
         BagOfVisualWords<byte[]> bovw = new BagOfVisualWords<>(assigner);
 

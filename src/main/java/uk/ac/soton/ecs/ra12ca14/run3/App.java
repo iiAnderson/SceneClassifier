@@ -61,16 +61,7 @@ public class App {
         for (FImage rec : sample) {
             FImage img = rec.getImage();
 
-            float tot = 0;
-            int pixelTot = 0;
-            for(int i = 0; i < img.getWidth(); i++){
-                for(int j = 0; j < img.getHeight(); j++){
-                    tot += img.pixels[j][i];
-                    pixelTot++;
-                }
-            }
-
-            pdsift.analyseImage(img.subtractInplace(tot/pixelTot));
+            pdsift.analyseImage(img);
 
             allkeys.add(pdsift.getByteKeypoints(0.005f));
         }
