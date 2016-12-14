@@ -3,21 +3,13 @@ package uk.ac.soton.ecs.ra12ca14.run2;
 import de.bwaldvogel.liblinear.*;
 import org.apache.commons.vfs2.*;
 import org.apache.log4j.*;
-import org.bridj.cpp.std.*;
-import org.openimaj.data.*;
 import org.openimaj.data.dataset.*;
 import org.openimaj.experiment.dataset.sampling.*;
 import org.openimaj.experiment.dataset.split.*;
 import org.openimaj.experiment.evaluation.classification.*;
-import org.openimaj.experiment.evaluation.classification.analysers.confusionmatrix.*;
 import org.openimaj.feature.*;
-import org.openimaj.feature.local.*;
-import org.openimaj.feature.local.data.*;
-import org.openimaj.feature.local.list.*;
 import org.openimaj.image.*;
-import org.openimaj.image.feature.dense.gradient.dsift.*;
 import org.openimaj.image.pixel.sampling.*;
-import org.openimaj.math.geometry.point.*;
 import org.openimaj.math.geometry.shape.*;
 import org.openimaj.ml.annotation.Annotator;
 import org.openimaj.ml.annotation.linear.*;
@@ -26,17 +18,19 @@ import org.openimaj.ml.clustering.assignment.*;
 import org.openimaj.ml.clustering.kmeans.*;
 import org.openimaj.util.pair.*;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.*;
 
 /**
- * Created by chloeallan on 09/12/2016.
+ * Linear Classifier that uses patches to create featurevectors, which are then used to create a vocab
+ * and classify the images.
  */
 public class App {
 
+    /*
+        Imports and splits the data, which is then used to create the vocab with trainWithKMeans.
+        A HardAssinger containing the vocab is returned and used in by the Linear Annotator.
+        the annotator is then used to train and classify the data.
+     */
     public static void main(String[] args) {
 
         VFSGroupDataset<FImage> training = null;
@@ -65,8 +59,9 @@ public class App {
                 trainWithKMeans(GroupedUniformRandomisedSampler.sample(training, 30));
 
         System.out.println("Built Extractor");
-        OurExtractor extractor = new OurExtractor(assigner);
+        RectangleSamplerExtractor extractor = new RectangleSamplerExtractor(assigner);
         LiblinearAnnotator<FImage, String> annotator = new LiblinearAnnotator<>(extractor,
+                //MultiLabel to make onevsall binary classifier
                 LiblinearAnnotator.Mode.MULTICLASS, SolverType.L2R_L2LOSS_SVC, 15.0, 0.1d);
 
 
@@ -75,6 +70,7 @@ public class App {
 
         validateVerifier(annotator, splitter.getValidationDataset());
 
+        //Writes ouptut of testing to file
 //        File output = new File("run2.txt");
 //        try {
 //            if(!output.exists())

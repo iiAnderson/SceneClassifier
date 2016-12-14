@@ -13,14 +13,22 @@ import org.openimaj.util.pair.*;
 
 import java.util.*;
 
-public class OurExtractor implements FeatureExtractor<DoubleFV, FImage> {
+public class RectangleSamplerExtractor implements FeatureExtractor<DoubleFV, FImage> {
 
+    //Contains the vocab
     HardAssigner<float[], float[], IntFloatPair> assigner;
 
-    public OurExtractor(HardAssigner<float[], float[], IntFloatPair> assigner) {
+    public RectangleSamplerExtractor(HardAssigner<float[], float[], IntFloatPair> assigner) {
         this.assigner = assigner;
     }
 
+    /*
+        Takes the input image and mean centers it to improve classification, then uses a rectanglesampler to
+        iterate through the image, creating sub-images from the rectangles and pulling the feature vectors
+        from these sub images.
+        These featurevectors are then aggregated by the BoVW to produce a sparsevector, which is normalised into
+        a DoubleFV and returned
+     */
     public DoubleFV extractFeature(FImage image) {
 
         BagOfVisualWords<float[]> bovw = new BagOfVisualWords<>(assigner);
@@ -41,21 +49,18 @@ public class OurExtractor implements FeatureExtractor<DoubleFV, FImage> {
         LocalFeatureList<LocalFeatureImpl<SpatialLocation, FloatFV>> list =
                 new MemoryLocalFeatureList<>();
 
-        pullLocalFeaturesRectangle(iterator, image, list);
 
-        return bovw.aggregate(list).normaliseFV();
-    }
-
-    static void pullLocalFeaturesRectangle(Iterator<Rectangle> iterator, FImage image,
-                                           LocalFeatureList<LocalFeatureImpl<SpatialLocation, FloatFV>> features){
+        //Iterates through the rectangles
         while(iterator.hasNext()) {
 
             Rectangle rec = iterator.next();
             Point2d center = rec.calculateCentroid();
 
-            features.add(new LocalFeatureImpl<>(
+            list.add(new LocalFeatureImpl<>(
                     new SpatialLocation(center.getX(), center.getY()),
                     new FloatFV(image.extractROI(rec).getFloatPixelVector())));
         }
+
+        return bovw.aggregate(list).normaliseFV();
     }
 }

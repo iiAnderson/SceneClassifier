@@ -26,6 +26,10 @@ import java.io.*;
 import java.util.*;
 
 public class App {
+
+    /*
+        Imports the datasets and splits them, calling perform task.
+     */
     public static void main( String[] args ) {
         VFSGroupDataset<FImage> training = null;
         try {
@@ -52,6 +56,10 @@ public class App {
         performTask(splitter.getTrainingDataset(), testing, splitter.getValidationDataset());
     }
 
+    /*
+        Trains the hard assigner by creating a vocab of visual words using KMeans.
+        Returns the HardAssigner containing the vocab.
+     */
     public static HardAssigner<byte[], float[], IntFloatPair> trainWithKMeans(
             Dataset<FImage> sample, PyramidDenseSIFT<FImage> pdsift) {
 
@@ -71,7 +79,7 @@ public class App {
             allkeys = allkeys.subList(0, 10000);
 
 
-        ByteKMeans km = ByteKMeans.createKDTreeEnsemble(300);
+        ByteKMeans km = ByteKMeans.createKDTreeEnsemble(500);
         DataSource<byte[]> datasource = new LocalFeatureListDataSource<>(allkeys);
         ByteCentroidsResult result = km.cluster(datasource);
 
@@ -79,6 +87,11 @@ public class App {
         return result.defaultHardAssigner();
     }
 
+    /*
+        Performs the classifier. First gets the Hard assigner from trainWithKMeans, then creates the annotator and
+        the extractor for pulling featurevectors from the images.
+        The annotator is then used to train the data
+     */
     private static void performTask(GroupedDataset<String, ListDataset<FImage>, FImage> train,
                                 VFSListDataset<FImage> testing, GroupedDataset<String, ListDataset<FImage>, FImage> val){
 
@@ -102,6 +115,7 @@ public class App {
 
         validateVerifier(annot, val);
 
+        //write to file
         File output = new File("run3.txt");
         try {
             if(!output.exists())
@@ -136,10 +150,16 @@ public class App {
 
     }
 
+    /*
+        Implementation of the NaiveBayes annotator, now not used.
+     */
     private static NaiveBayesAnnotator<FImage, String> bayesExtractor(FeatureExtractor<DoubleFV, FImage> extr){
         return new NaiveBayesAnnotator<>(extr, NaiveBayesAnnotator.Mode.ALL);
     }
 
+    /*
+        Implementation of the HomogenousKernelMap with LibLinearExtractor, now used.
+     */
     private static LiblinearAnnotator<FImage, String> svmExtractor(FeatureExtractor<DoubleFV, FImage> extr){
         HomogeneousKernelMap map =
                 new HomogeneousKernelMap(HomogeneousKernelMap.KernelType.JensonShannon,
@@ -150,6 +170,9 @@ public class App {
     }
 
 
+    /*
+        Validation method used throughout the runs. Placed in here to demonstrate how we verified the data.
+     */
     private static void validateVerifier(Annotator<FImage, String> annotator,
                                          GroupedDataset<String, ListDataset<FImage>, FImage> validation){
         int corr = 0, size = 0;

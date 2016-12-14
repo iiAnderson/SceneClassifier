@@ -8,7 +8,9 @@ import org.openimaj.image.feature.local.aggregate.*;
 import org.openimaj.ml.clustering.assignment.*;
 import org.openimaj.util.pair.*;
 
-
+/*
+    Pyramid Histogram of Words
+ */
 public class PHOWExtractor implements FeatureExtractor<DoubleFV, FImage> {
 
     //Used to pull keypoints from an image
