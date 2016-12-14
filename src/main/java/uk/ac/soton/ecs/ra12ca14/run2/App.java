@@ -18,6 +18,10 @@ import org.openimaj.ml.clustering.assignment.*;
 import org.openimaj.ml.clustering.kmeans.*;
 import org.openimaj.util.pair.*;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.*;
 
 /**
@@ -71,34 +75,34 @@ public class App {
         validateVerifier(annotator, splitter.getValidationDataset());
 
         //Writes ouptut of testing to file
-//        File output = new File("run2.txt");
-//        try {
-//            if(!output.exists())
-//                output.createNewFile();
-//        }catch (Exception e){}
-//
-//        FileWriter fileWriter = null;
-//        try {
-//            fileWriter = new FileWriter(output);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        PrintWriter printer = new PrintWriter(fileWriter);
-//
-//        for(int i = 0; i < testing.size(); i ++){
-//            FileObject img = testing.getFileObject(i);
-//
-//            ClassificationResult<String> res = annotator.classify(testing.get(i));
-//
-//            String app = "";
-//            for(String s: res.getPredictedClasses())
-//                app += s;
-//
-//            String out = "Image " + img.getName().getBaseName() + " predicted as: " + app;
-//            System.out.println(out);
-//            printer.println(out);
-//
-//        }
+        File output = new File("run2.txt");
+        try {
+            if(!output.exists())
+                output.createNewFile();
+        }catch (Exception e){}
+
+        FileWriter fileWriter = null;
+        try {
+            fileWriter = new FileWriter(output);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        PrintWriter printer = new PrintWriter(fileWriter);
+
+        for(int i = 0; i < testing.size(); i ++){
+            FileObject img = testing.getFileObject(i);
+
+            ClassificationResult<String> res = annotator.classify(testing.get(i));
+
+            String app = "";
+            for(String s: res.getPredictedClasses())
+                app += s;
+
+            String out = "Image " + img.getName().getBaseName() + " predicted as: " + app;
+            System.out.println(out);
+            printer.println(out);
+
+        }
     }
 
     private static void validateVerifier(Annotator<FImage, String> annotator,
@@ -151,9 +155,9 @@ public class App {
         }
 
 
-        float[][] vectors = new float[100000][];
+        float[][] vectors = new float[200000][];
 
-        for(int i = 0; i < 100000; i++){
+        for(int i = 0; i < 200000; i++){
             vectors[i] = vec.get(i).getVector();
         }
 
