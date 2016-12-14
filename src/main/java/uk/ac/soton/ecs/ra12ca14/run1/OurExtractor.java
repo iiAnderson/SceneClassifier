@@ -17,19 +17,19 @@ public class OurExtractor implements FeatureExtractor<DoubleFV, FImage> {
 
     public DoubleFV extractFeature(FImage image) {
         FImage newImage = null;
+
+        int[] vals = image.getHeight() > image.getWidth() ?
+                new int[]{image.getWidth(), image.getHeight()} :
+                new int[]{image.getHeight(), image.getWidth()};
+
         if (image.getWidth() != image.getHeight()) {
 
-            if (image.getHeight() > image.getWidth()) {
-                newImage = image.extractCenter(image.getWidth(), image.getWidth());
-                resize.processImage(newImage);
-            } else if (image.getWidth() > image.getHeight()) {
-                newImage = image.extractCenter(image.getHeight(), image.getHeight());
-                resize.processImage(newImage);
-            }
-        } else {
-            newImage = image.normalise();
-            resize.processImage(image);
-        }
+            newImage = image.extractCenter(vals[0], vals[1]);
+            resize.processImage(newImage);
+        } else
+            newImage = image;
+
+        resize.processImage(newImage);
 
         float tot = 0;
         int pixelTot = 0;

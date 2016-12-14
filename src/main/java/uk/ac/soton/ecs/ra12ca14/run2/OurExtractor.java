@@ -25,6 +25,7 @@ public class OurExtractor implements FeatureExtractor<DoubleFV, FImage> {
 
         BagOfVisualWords<float[]> bovw = new BagOfVisualWords<>(assigner);
 
+        //mean center image
         float tot = 0;
         int pixelTot = 0;
         for(int i = 0; i < image.getWidth(); i++){
@@ -34,7 +35,7 @@ public class OurExtractor implements FeatureExtractor<DoubleFV, FImage> {
             }
         }
 
-        RectangleSampler sampler = new RectangleSampler(image.subtractInplace(tot/pixelTot), 4, 4, 8, 8);
+        RectangleSampler sampler = new RectangleSampler(image.subtractInplace(tot/pixelTot).normalise(), 4, 4, 8, 8);
 
         Iterator<Rectangle> iterator = sampler.iterator();
         LocalFeatureList<LocalFeatureImpl<SpatialLocation, FloatFV>> list =

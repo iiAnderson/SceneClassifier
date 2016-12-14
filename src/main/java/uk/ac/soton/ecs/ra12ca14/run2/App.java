@@ -58,16 +58,16 @@ public class App {
         }
 
         GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(
-                training, 40, 40, 20);
+                training, 50, 40, 10);
 
 
         HardAssigner<float[], float[], IntFloatPair> assigner =
-                trainWithKMeans(GroupedUniformRandomisedSampler.sample(training, 20));
+                trainWithKMeans(GroupedUniformRandomisedSampler.sample(training, 30));
 
         System.out.println("Built Extractor");
         OurExtractor extractor = new OurExtractor(assigner);
         LiblinearAnnotator<FImage, String> annotator = new LiblinearAnnotator<>(extractor,
-                LiblinearAnnotator.Mode.MULTICLASS, SolverType.MCSVM_CS, 15.0, 0.00001d);
+                LiblinearAnnotator.Mode.MULTICLASS, SolverType.L2R_L2LOSS_SVC, 15.0, 0.1d);
 
 
         annotator.train(splitter.getTrainingDataset());
@@ -142,7 +142,7 @@ public class App {
                 }
             }
 
-            RectangleSampler sampler = new RectangleSampler(image.subtractInplace(tot/pixelTot), 4, 4, 8, 8);
+            RectangleSampler sampler = new RectangleSampler(image.subtractInplace(tot/pixelTot).normalise(), 4, 4, 8, 8);
 
             Iterator<Rectangle> iterator = sampler.iterator();
 
@@ -154,13 +154,14 @@ public class App {
             }
         }
 
-        System.out.println(vec.size());
 
-        float[][] vectors = new float[10000][];
+        float[][] vectors = new float[100000][];
 
-        for(int i = 0; i < 10000; i++){
+        for(int i = 0; i < 100000; i++){
             vectors[i] = vec.get(i).getVector();
         }
+
+        System.out.println(vectors.length);
 
         FloatKMeans km = FloatKMeans.createKDTreeEnsemble(500);
 

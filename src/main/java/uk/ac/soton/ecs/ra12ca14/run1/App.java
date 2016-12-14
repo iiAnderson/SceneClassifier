@@ -43,7 +43,7 @@ public class App {
                 DoubleFVComparison.EUCLIDEAN);
 
 
-        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(training, 50, 0, 50);
+        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(training, 80, 20, 0);
 
         GroupedDataset<String, ListDataset<FImage>, FImage> trainingSplit = splitter.getTrainingDataset();
 

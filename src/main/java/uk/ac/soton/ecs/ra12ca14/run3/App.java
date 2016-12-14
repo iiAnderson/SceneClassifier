@@ -1,5 +1,6 @@
 package uk.ac.soton.ecs.ra12ca14.run3;
 
+import de.bwaldvogel.liblinear.SolverType;
 import org.apache.commons.vfs2.*;
 import org.apache.log4j.*;
 import org.openimaj.data.*;
@@ -14,9 +15,11 @@ import org.openimaj.image.*;
 import org.openimaj.image.feature.dense.gradient.dsift.*;
 import org.openimaj.ml.annotation.Annotator;
 import org.openimaj.ml.annotation.bayes.NaiveBayesAnnotator;
+import org.openimaj.ml.annotation.linear.LiblinearAnnotator;
 import org.openimaj.ml.clustering.*;
 import org.openimaj.ml.clustering.assignment.*;
 import org.openimaj.ml.clustering.kmeans.*;
+import org.openimaj.ml.kernel.HomogeneousKernelMap;
 import org.openimaj.util.pair.*;
 
 import java.io.*;
@@ -44,7 +47,7 @@ public class App {
         }
 
         GroupedRandomSplitter<String, FImage> splitter =
-                new GroupedRandomSplitter<>(training, 40, 40, 20);
+                new GroupedRandomSplitter<>(training, 30, 40, 30);
 
         performTask(splitter.getTrainingDataset(), testing, splitter.getValidationDataset());
     }
@@ -52,6 +55,7 @@ public class App {
     public static HardAssigner<byte[], float[], IntFloatPair> trainWithKMeans(
             Dataset<FImage> sample, PyramidDenseSIFT<FImage> pdsift) {
 
+        //local features with location and vector
         List<LocalFeatureList<ByteDSIFTKeypoint>> allkeys = new ArrayList<>();
 
         for (FImage rec : sample) {
@@ -87,7 +91,7 @@ public class App {
     private static void performTask(GroupedDataset<String, ListDataset<FImage>, FImage> train,
                                 VFSListDataset<FImage> testing, GroupedDataset<String, ListDataset<FImage>, FImage> val){
 
-        PyramidDenseSIFT<FImage> sift = new PyramidDenseSIFT<FImage>(
+        PyramidDenseSIFT<FImage> sift = new PyramidDenseSIFT<>(
                 new DenseSIFT(5, 7), 6f, 7);
 
         //Build the Vocab and save it in the HardAssigner
@@ -96,8 +100,7 @@ public class App {
 
         FeatureExtractor<DoubleFV, FImage> extractor = new PHOWExtractor(sift, assigner);
 
-        NaiveBayesAnnotator<FImage, String> annot = new NaiveBayesAnnotator<>(
-                extractor, NaiveBayesAnnotator.Mode.ALL);
+        LiblinearAnnotator<FImage, String> annot = svmExtractor(extractor);
 
         System.out.println("Started training");
 
@@ -108,39 +111,53 @@ public class App {
 
         validateVerifier(annot, val);
 
-//        File output = new File("run3.txt");
-//        try {
-//            if(!output.exists())
-//                output.createNewFile();
-//        }catch (Exception e){}
-//
-//        FileWriter fileWriter = null;
-//        try {
-//            fileWriter = new FileWriter(output);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            return;
-//        }
-//        PrintWriter printer = new PrintWriter(fileWriter);
-//
-//        for(int i = 0; i < testing.size(); i ++){
-//            FileObject img = testing.getFileObject(i);
-//
-//            //Classifies the Image and returns a result
-//            ClassificationResult<String> res = annot.classify(testing.get(i));
-//
-//            String app = "";
-//            for(String s: res.getPredictedClasses())
-//                app += s;
-//
-//            //Prints out to file and System
-//            String out = "Image " + img.getName() + " predicted as: " + app;
-//            System.out.println(out);
-//            printer.println(out);
-//
-//        }
+        File output = new File("run3.txt");
+        try {
+            if(!output.exists())
+                output.createNewFile();
+        }catch (Exception e){}
+
+        FileWriter fileWriter = null;
+        try {
+            fileWriter = new FileWriter(output);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+        PrintWriter printer = new PrintWriter(fileWriter);
+
+        for(int i = 0; i < testing.size(); i ++){
+            FileObject img = testing.getFileObject(i);
+
+            //Classifies the Image and returns a result
+            ClassificationResult<String> res = annot.classify(testing.get(i));
+
+            String app = "";
+            for(String s: res.getPredictedClasses())
+                app += s;
+
+            //Prints out to file and System
+            String out = img.getName().getBaseName() + " " + app;
+            printer.println(out);
+
+        }
+        System.out.println("complete");
 
     }
+
+    private static NaiveBayesAnnotator<FImage, String> bayesExtractor(FeatureExtractor<DoubleFV, FImage> extr){
+        return new NaiveBayesAnnotator<>(extr, NaiveBayesAnnotator.Mode.ALL);
+    }
+
+    private static LiblinearAnnotator<FImage, String> svmExtractor(FeatureExtractor<DoubleFV, FImage> extr){
+        HomogeneousKernelMap map =
+                new HomogeneousKernelMap(HomogeneousKernelMap.KernelType.JensonShannon,
+                        HomogeneousKernelMap.WindowType.Rectangular);
+
+        return new LiblinearAnnotator<>(
+                map.createWrappedExtractor(extr), LiblinearAnnotator.Mode.MULTICLASS, SolverType.L2R_L2LOSS_SVC, 15.0, 0.00001d);
+    }
+
 
     private static void validateVerifier(Annotator<FImage, String> annotator,
                                          GroupedDataset<String, ListDataset<FImage>, FImage> validation){
